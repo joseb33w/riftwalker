@@ -21,8 +21,28 @@ func _ready() -> void:
 	fade.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	ui_layer.add_child(fade)
 	best_ms = _load_best()
+	var dw := _debug_world()
+	if dw >= 0:
+		hero_tint = WorldDefs.TINTS[0]["color"]
+		run_start_ms = Time.get_ticks_msec()
+		_goto_world(dw)
+		_fade_to(0.0, 0.6)
+		return
 	_show_title()
 	_fade_to(0.0, 0.6)
+
+# Optional deep-link for testing: open index.html#w=2 to jump straight to a world.
+func _debug_world() -> int:
+	if not OS.has_feature("web"):
+		return -1
+	var h: String = str(JavaScriptBridge.eval("window.location.hash", true))
+	var idx := h.find("w=")
+	if idx < 0:
+		return -1
+	var n := h.substr(idx + 2).to_int()
+	if n >= 0 and n < WorldDefs.WORLD_COUNT:
+		return n
+	return -1
 
 # ---------- title ----------
 
@@ -31,22 +51,24 @@ func _show_title() -> void:
 	c.name = "TitleGate"
 	c.set_anchors_preset(Control.PRESET_FULL_RECT)
 	_gradient_bg(c)
+	var box := VBoxContainer.new()
+	box.set_anchors_preset(Control.PRESET_FULL_RECT)
+	box.alignment = BoxContainer.ALIGNMENT_CENTER
+	box.add_theme_constant_override("separation", 14)
+	box.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	c.add_child(box)
 	var t := Label.new()
 	t.text = "RIFTWALKER"
 	t.add_theme_font_size_override("font_size", 92)
 	t.add_theme_color_override("font_color", Color(1.0, 0.92, 0.7))
 	t.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	t.set_anchors_preset(Control.PRESET_CENTER)
-	t.position.y = -120
-	c.add_child(t)
+	box.add_child(t)
 	var tap := Label.new()
 	tap.text = "TAP TO BEGIN"
 	tap.add_theme_font_size_override("font_size", 38)
 	tap.add_theme_color_override("font_color", Color(0.85, 0.88, 1.0))
 	tap.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	tap.set_anchors_preset(Control.PRESET_CENTER)
-	tap.position.y = 40
-	c.add_child(tap)
+	box.add_child(tap)
 	var btn := Button.new()
 	btn.flat = true
 	btn.set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -132,22 +154,23 @@ func _overlay(title: String, subtitle: String, btn_text: String, accent: Color) 
 	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
 	bg.color = Color(0, 0, 0, 0.66)
 	c.add_child(bg)
+	var box := VBoxContainer.new()
+	box.set_anchors_preset(Control.PRESET_FULL_RECT)
+	box.alignment = BoxContainer.ALIGNMENT_CENTER
+	box.add_theme_constant_override("separation", 24)
+	c.add_child(box)
 	var t := Label.new()
 	t.text = title
 	t.add_theme_font_size_override("font_size", 78)
 	t.add_theme_color_override("font_color", Color(1, 0.95, 0.82))
 	t.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	t.set_anchors_preset(Control.PRESET_CENTER)
-	t.position.y = -110
-	c.add_child(t)
+	box.add_child(t)
 	var s := Label.new()
 	s.text = subtitle
 	s.add_theme_font_size_override("font_size", 28)
 	s.add_theme_color_override("font_color", Color(0.85, 0.88, 0.96))
 	s.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	s.set_anchors_preset(Control.PRESET_CENTER)
-	s.position.y = -20
-	c.add_child(s)
+	box.add_child(s)
 	var btn := Button.new()
 	btn.text = btn_text
 	btn.add_theme_font_size_override("font_size", 32)
@@ -159,9 +182,10 @@ func _overlay(title: String, subtitle: String, btn_text: String, accent: Color) 
 	var hb := sb.duplicate(); (hb as StyleBoxFlat).bg_color = accent.lightened(0.12)
 	btn.add_theme_stylebox_override("hover", hb)
 	btn.add_theme_stylebox_override("pressed", hb)
-	btn.set_anchors_preset(Control.PRESET_CENTER)
-	btn.position = Vector2(-180, 70)
-	c.add_child(btn)
+	var bbox := HBoxContainer.new()
+	bbox.alignment = BoxContainer.ALIGNMENT_CENTER
+	bbox.add_child(btn)
+	box.add_child(bbox)
 	c.set_meta("action", btn)
 	ui_layer.add_child(c)
 	return c
