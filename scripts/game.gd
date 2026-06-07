@@ -77,19 +77,28 @@ func _show_title() -> void:
 		_show_start())
 	c.add_child(btn)
 	ui_layer.add_child(c)
-	var tw := create_tween().set_loops()
+	# bind the looping pulse to the label it animates so it dies with the title
+	# gate; a Game-bound infinite tween animating the freed label hangs the renderer
+	var tw := tap.create_tween().set_loops()
 	tw.tween_property(tap, "modulate:a", 0.3, 0.7)
 	tw.tween_property(tap, "modulate:a", 1.0, 0.7)
 
 # ---------- start / customization ----------
 
 func _show_start() -> void:
+	# the rotating hero preview renders in the MAIN viewport (a SubViewport hangs WebGL2)
+	var stage := Node3D.new()
+	stage.name = "PreviewStage"
+	add_child(stage)
 	var ss := StartScreen.new()
 	ss.name = "StartScreen"
+	ss.stage = stage
 	ui_layer.add_child(ss)
 	ss.begin.connect(func(cls: String, tint: Color) -> void:
 		hero_class = cls
 		hero_tint = tint
+		if is_instance_valid(stage):
+			stage.queue_free()
 		ss.queue_free()
 		_start_journey())
 
