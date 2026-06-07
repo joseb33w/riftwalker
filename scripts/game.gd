@@ -84,12 +84,19 @@ func _show_title() -> void:
 # ---------- start / customization ----------
 
 func _show_start() -> void:
+	# the rotating hero preview renders in the MAIN viewport (a SubViewport hangs WebGL2)
+	var stage := Node3D.new()
+	stage.name = "PreviewStage"
+	add_child(stage)
 	var ss := StartScreen.new()
 	ss.name = "StartScreen"
+	ss.stage = stage
 	ui_layer.add_child(ss)
 	ss.begin.connect(func(cls: String, tint: Color) -> void:
 		hero_class = cls
 		hero_tint = tint
+		if is_instance_valid(stage):
+			stage.queue_free()
 		ss.queue_free()
 		_start_journey())
 
