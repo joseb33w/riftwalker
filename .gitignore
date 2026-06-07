@@ -1,0 +1,16 @@
+# Godot
+.godot/
+/out/
+/godot
+*.tmp
+*.b64
+
+# Art assets (fetched via fetch_assets.sh, not committed to keep the repo lean)
+/models/
+/skies/
+/textures/
+
+# Verify tooling (never committed)
+/verify/
+tools_*.gd
+tools_*.tscn
