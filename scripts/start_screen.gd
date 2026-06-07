@@ -3,8 +3,14 @@ class_name StartScreen
 
 signal begin(class_id: String, tint: Color)
 
+# The rotating 3D hero preview is rendered in the MAIN viewport (via `stage`, a
+# Node3D placed in the main world by Game) rather than a SubViewport — a
+# transparent own-world SubViewport hangs the GL-Compatibility/WebGL2 renderer
+# on the first frame, which froze the game on the very first tap.
+
 var class_idx := 0
 var tint_idx := 0
+var stage: Node3D
 var _holder: Node3D
 var _hero: Node3D
 var _class_label: Label
@@ -13,83 +19,94 @@ var _swatches: Array[Panel] = []
 
 func _ready() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
-	_build_background()
-	_build_preview()
+	mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_build_stage()
+	_build_vignette()
 	_build_ui()
 	_rebuild_hero()
 
-func _build_background() -> void:
-	var bg := ColorRect.new()
-	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
-	bg.color = Color(0.05, 0.05, 0.08)
-	add_child(bg)
-	var grad := Gradient.new()
-	grad.set_color(0, Color(0.10, 0.08, 0.16))
-	grad.set_color(1, Color(0.03, 0.03, 0.06))
-	var gt := GradientTexture2D.new()
-	gt.gradient = grad
-	gt.fill = GradientTexture2D.FILL_RADIAL
-	gt.fill_from = Vector2(0.5, 0.35)
-	gt.fill_to = Vector2(0.5, 1.0)
-	gt.width = 64; gt.height = 64
-	var tr := TextureRect.new()
-	tr.texture = gt
-	tr.set_anchors_preset(Control.PRESET_FULL_RECT)
-	tr.stretch_mode = TextureRect.STRETCH_SCALE
-	add_child(tr)
+# ---------- 3D preview (main viewport) ----------
 
-func _build_preview() -> void:
-	var cont := SubViewportContainer.new()
-	cont.stretch = true
-	cont.set_anchors_preset(Control.PRESET_CENTER)
-	cont.custom_minimum_size = Vector2(520, 520)
-	cont.position = Vector2(-260, -300)
-	cont.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	add_child(cont)
-	var vp := SubViewport.new()
-	vp.own_world_3d = true
-	vp.transparent_bg = true
-	vp.msaa_3d = Viewport.MSAA_2X
-	vp.size = Vector2i(520, 520)
-	cont.add_child(vp)
-	var root := Node3D.new()
-	vp.add_child(root)
+func _build_stage() -> void:
+	if stage == null:
+		return
 	var cam := Camera3D.new()
-	cam.position = Vector3(0, 1.15, 3.5)
-	cam.rotation.x = deg_to_rad(-8)
-	cam.fov = 40.0
-	root.add_child(cam)
+	cam.position = Vector3(0, 1.2, 3.7)
+	cam.rotation.x = deg_to_rad(-7)
+	cam.fov = 38.0
+	stage.add_child(cam)
+	cam.current = true
 	var key := DirectionalLight3D.new()
-	key.rotation = Vector3(deg_to_rad(-35), deg_to_rad(35), 0)
-	key.light_energy = 1.6
+	key.rotation = Vector3(deg_to_rad(-35), deg_to_rad(40), 0)
+	key.light_energy = 1.7
 	key.light_color = Color(1.0, 0.95, 0.85)
-	root.add_child(key)
+	key.shadow_enabled = true
+	stage.add_child(key)
 	var rim := DirectionalLight3D.new()
-	rim.rotation = Vector3(deg_to_rad(-10), deg_to_rad(200), 0)
-	rim.light_energy = 0.8
-	rim.light_color = Color(0.6, 0.7, 1.0)
-	root.add_child(rim)
+	rim.rotation = Vector3(deg_to_rad(-12), deg_to_rad(205), 0)
+	rim.light_energy = 1.0
+	rim.light_color = Color(0.55, 0.7, 1.0)
+	stage.add_child(rim)
 	var we := WorldEnvironment.new()
 	var env := Environment.new()
-	env.background_mode = Environment.BG_COLOR
-	env.background_color = Color(0, 0, 0, 0)
-	env.ambient_light_color = Color(0.5, 0.52, 0.6)
-	env.ambient_light_energy = 0.6
+	env.background_mode = Environment.BG_SKY
+	var sky := Sky.new()
+	var psm := ProceduralSkyMaterial.new()
+	psm.sky_top_color = Color(0.09, 0.08, 0.17)
+	psm.sky_horizon_color = Color(0.24, 0.16, 0.30)
+	psm.ground_horizon_color = Color(0.10, 0.09, 0.15)
+	psm.ground_bottom_color = Color(0.03, 0.03, 0.06)
+	sky.sky_material = psm
+	env.sky = sky
+	env.ambient_light_source = Environment.AMBIENT_SOURCE_SKY
+	env.ambient_light_sky_contribution = 0.8
+	env.ambient_light_energy = 0.7
 	env.tonemap_mode = Environment.TONE_MAPPER_AGX
+	env.fog_enabled = true
+	env.fog_light_color = Color(0.16, 0.14, 0.26)
+	env.fog_density = 0.014
+	env.fog_sky_affect = 0.0
 	we.environment = env
-	root.add_child(we)
+	stage.add_child(we)
 	# soft disc under the hero
 	var disc := MeshInstance3D.new()
 	var cyl := CylinderMesh.new()
-	cyl.top_radius = 1.1; cyl.bottom_radius = 1.1; cyl.height = 0.05
+	cyl.top_radius = 1.05; cyl.bottom_radius = 1.05; cyl.height = 0.06
 	disc.mesh = cyl
 	var dm := StandardMaterial3D.new()
-	dm.albedo_color = Color(0.15, 0.15, 0.22)
+	dm.albedo_color = Color(0.12, 0.12, 0.18)
+	dm.roughness = 0.65
 	disc.material_override = dm
-	disc.position.y = 0.0
-	root.add_child(disc)
+	stage.add_child(disc)
 	_holder = Node3D.new()
-	root.add_child(_holder)
+	stage.add_child(_holder)
+
+func _build_vignette() -> void:
+	var top := _vgrad(Color(0.02, 0.02, 0.05, 0.92), Color(0.02, 0.02, 0.05, 0.0))
+	top.set_anchors_preset(Control.PRESET_TOP_WIDE)
+	top.offset_bottom = 300
+	add_child(top)
+	var bot := _vgrad(Color(0.02, 0.02, 0.05, 0.0), Color(0.01, 0.01, 0.04, 0.97))
+	bot.set_anchors_preset(Control.PRESET_BOTTOM_WIDE)
+	bot.offset_top = -400
+	add_child(bot)
+
+func _vgrad(c_top: Color, c_bot: Color) -> TextureRect:
+	var g := Gradient.new()
+	g.set_color(0, c_top)
+	g.set_color(1, c_bot)
+	var gt := GradientTexture2D.new()
+	gt.gradient = g
+	gt.fill_from = Vector2(0, 0)
+	gt.fill_to = Vector2(0, 1)
+	gt.width = 8; gt.height = 64
+	var tr := TextureRect.new()
+	tr.texture = gt
+	tr.stretch_mode = TextureRect.STRETCH_SCALE
+	tr.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	return tr
+
+# ---------- UI ----------
 
 func _build_ui() -> void:
 	var title := Label.new()
@@ -99,6 +116,7 @@ func _build_ui() -> void:
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	title.set_anchors_preset(Control.PRESET_TOP_WIDE)
 	title.position.y = 36
+	title.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(title)
 	var sub := Label.new()
 	sub.text = "Forge your hero, then walk the rifts"
@@ -107,6 +125,7 @@ func _build_ui() -> void:
 	sub.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	sub.set_anchors_preset(Control.PRESET_TOP_WIDE)
 	sub.position.y = 128
+	sub.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(sub)
 
 	# bottom control stack
@@ -114,8 +133,8 @@ func _build_ui() -> void:
 	panel.set_anchors_preset(Control.PRESET_BOTTOM_WIDE)
 	panel.alignment = BoxContainer.ALIGNMENT_CENTER
 	panel.add_theme_constant_override("separation", 18)
-	panel.position = Vector2(0, -300)
-	panel.custom_minimum_size = Vector2(0, 280)
+	panel.position = Vector2(0, -320)
+	panel.custom_minimum_size = Vector2(0, 300)
 	add_child(panel)
 
 	# class selector
@@ -182,6 +201,7 @@ func _build_ui() -> void:
 	hint.add_theme_color_override("font_color", Color(0.7, 0.72, 0.8))
 	hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	hint.set_anchors_preset(Control.PRESET_TOP_WIDE)
+	hint.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	panel.add_child(hint)
 
 	_update_labels()
@@ -254,7 +274,7 @@ func _apply_tint_to_hero() -> void:
 					(m as StandardMaterial3D).albedo_color = (m as StandardMaterial3D).albedo_color.lerp(tint, 0.55)
 
 func _process(dt: float) -> void:
-	if _holder:
+	if _holder != null and is_instance_valid(_holder):
 		_holder.rotation.y += dt * 0.6
 
 func _on_begin() -> void:
