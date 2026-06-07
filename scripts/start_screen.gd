@@ -18,12 +18,20 @@ var _tint_label: Label
 var _swatches: Array[Panel] = []
 
 func _ready() -> void:
+	# A Control parented to a CanvasLayer does NOT auto-fill the viewport, so its
+	# size stays (0,0) and bottom-anchored children land off-screen. Size it
+	# explicitly and keep it in sync on resize/rotate.
 	set_anchors_preset(Control.PRESET_FULL_RECT)
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
+	size = get_viewport_rect().size
+	get_viewport().size_changed.connect(_on_viewport_resized)
 	_build_stage()
 	_build_vignette()
 	_build_ui()
 	_rebuild_hero()
+
+func _on_viewport_resized() -> void:
+	size = get_viewport_rect().size
 
 # ---------- 3D preview (main viewport) ----------
 
@@ -31,9 +39,9 @@ func _build_stage() -> void:
 	if stage == null:
 		return
 	var cam := Camera3D.new()
-	cam.position = Vector3(0, 1.2, 3.7)
-	cam.rotation.x = deg_to_rad(-7)
-	cam.fov = 38.0
+	cam.position = Vector3(0, 1.7, 6.7)
+	cam.rotation.x = deg_to_rad(-9)
+	cam.fov = 30.0
 	stage.add_child(cam)
 	cam.current = true
 	var key := DirectionalLight3D.new()
@@ -84,11 +92,11 @@ func _build_stage() -> void:
 func _build_vignette() -> void:
 	var top := _vgrad(Color(0.02, 0.02, 0.05, 0.92), Color(0.02, 0.02, 0.05, 0.0))
 	top.set_anchors_preset(Control.PRESET_TOP_WIDE)
-	top.offset_bottom = 300
+	top.offset_bottom = 520
 	add_child(top)
-	var bot := _vgrad(Color(0.02, 0.02, 0.05, 0.0), Color(0.01, 0.01, 0.04, 0.97))
+	var bot := _vgrad(Color(0.02, 0.02, 0.05, 0.0), Color(0.01, 0.01, 0.04, 0.98))
 	bot.set_anchors_preset(Control.PRESET_BOTTOM_WIDE)
-	bot.offset_top = -400
+	bot.offset_top = -760
 	add_child(bot)
 
 func _vgrad(c_top: Color, c_bot: Color) -> TextureRect:
@@ -111,58 +119,64 @@ func _vgrad(c_top: Color, c_bot: Color) -> TextureRect:
 func _build_ui() -> void:
 	var title := Label.new()
 	title.text = "RIFTWALKER"
-	title.add_theme_font_size_override("font_size", 76)
+	title.add_theme_font_size_override("font_size", 96)
 	title.add_theme_color_override("font_color", Color(1.0, 0.92, 0.7))
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	title.set_anchors_preset(Control.PRESET_TOP_WIDE)
-	title.position.y = 36
+	title.position.y = 60
 	title.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(title)
 	var sub := Label.new()
 	sub.text = "Forge your hero, then walk the rifts"
-	sub.add_theme_font_size_override("font_size", 24)
+	sub.add_theme_font_size_override("font_size", 34)
 	sub.add_theme_color_override("font_color", Color(0.75, 0.78, 0.9))
 	sub.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	sub.set_anchors_preset(Control.PRESET_TOP_WIDE)
-	sub.position.y = 128
+	sub.position.y = 178
 	sub.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(sub)
 
-	# bottom control stack
+	# bottom control stack — explicit bottom anchoring so it's always on-screen
 	var panel := VBoxContainer.new()
-	panel.set_anchors_preset(Control.PRESET_BOTTOM_WIDE)
+	panel.anchor_left = 0.0
+	panel.anchor_right = 1.0
+	panel.anchor_top = 1.0
+	panel.anchor_bottom = 1.0
+	panel.offset_top = -700
+	panel.offset_bottom = -56
+	panel.offset_left = 0
+	panel.offset_right = 0
 	panel.alignment = BoxContainer.ALIGNMENT_CENTER
-	panel.add_theme_constant_override("separation", 18)
-	panel.position = Vector2(0, -320)
-	panel.custom_minimum_size = Vector2(0, 300)
+	panel.add_theme_constant_override("separation", 26)
 	add_child(panel)
 
 	# class selector
 	var crow := HBoxContainer.new()
 	crow.alignment = BoxContainer.ALIGNMENT_CENTER
-	crow.add_theme_constant_override("separation", 24)
+	crow.add_theme_constant_override("separation", 30)
 	panel.add_child(crow)
 	crow.add_child(_arrow("<", _prev_class))
 	_class_label = Label.new()
-	_class_label.add_theme_font_size_override("font_size", 40)
+	_class_label.add_theme_font_size_override("font_size", 58)
 	_class_label.add_theme_color_override("font_color", Color.WHITE)
-	_class_label.custom_minimum_size = Vector2(260, 0)
+	_class_label.custom_minimum_size = Vector2(360, 0)
 	_class_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_class_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	crow.add_child(_class_label)
 	crow.add_child(_arrow(">", _next_class))
 
 	# tint swatches
 	var trow := HBoxContainer.new()
 	trow.alignment = BoxContainer.ALIGNMENT_CENTER
-	trow.add_theme_constant_override("separation", 16)
+	trow.add_theme_constant_override("separation", 22)
 	panel.add_child(trow)
 	for i in range(WorldDefs.TINTS.size()):
 		var sw := Panel.new()
-		sw.custom_minimum_size = Vector2(56, 56)
+		sw.custom_minimum_size = Vector2(96, 96)
 		var sb := StyleBoxFlat.new()
 		sb.bg_color = WorldDefs.TINTS[i]["color"]
-		sb.set_corner_radius_all(10)
-		sb.set_border_width_all(3)
+		sb.set_corner_radius_all(14)
+		sb.set_border_width_all(4)
 		sb.border_color = Color(1, 1, 1, 0.0)
 		sw.add_theme_stylebox_override("panel", sb)
 		sw.gui_input.connect(_swatch_input.bind(i))
@@ -170,20 +184,21 @@ func _build_ui() -> void:
 		_swatches.append(sw)
 
 	_tint_label = Label.new()
-	_tint_label.add_theme_font_size_override("font_size", 22)
+	_tint_label.add_theme_font_size_override("font_size", 32)
 	_tint_label.add_theme_color_override("font_color", Color(0.8, 0.85, 0.95))
 	_tint_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_tint_label.set_anchors_preset(Control.PRESET_TOP_WIDE)
+	_tint_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	panel.add_child(_tint_label)
 
 	# begin button
 	var begin_btn := Button.new()
 	begin_btn.text = "BEGIN JOURNEY"
-	begin_btn.add_theme_font_size_override("font_size", 34)
-	begin_btn.custom_minimum_size = Vector2(420, 78)
+	begin_btn.add_theme_font_size_override("font_size", 48)
+	begin_btn.custom_minimum_size = Vector2(620, 124)
 	var bsb := StyleBoxFlat.new()
 	bsb.bg_color = Color(0.85, 0.5, 0.2)
-	bsb.set_corner_radius_all(14)
+	bsb.set_corner_radius_all(18)
 	begin_btn.add_theme_stylebox_override("normal", bsb)
 	var bhover := bsb.duplicate()
 	bhover.bg_color = Color(0.95, 0.6, 0.28)
@@ -196,8 +211,8 @@ func _build_ui() -> void:
 	begin_btn.pressed.connect(_on_begin)
 
 	var hint := Label.new()
-	hint.text = "Move: left joystick   Look: drag right side   ATK / DASH buttons"
-	hint.add_theme_font_size_override("font_size", 20)
+	hint.text = "Joystick to move   -   drag to look   -   ATK / DASH buttons"
+	hint.add_theme_font_size_override("font_size", 26)
 	hint.add_theme_color_override("font_color", Color(0.7, 0.72, 0.8))
 	hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	hint.set_anchors_preset(Control.PRESET_TOP_WIDE)
@@ -209,10 +224,27 @@ func _build_ui() -> void:
 func _arrow(txt: String, cb: Callable) -> Button:
 	var b := Button.new()
 	b.text = txt
-	b.add_theme_font_size_override("font_size", 44)
-	b.custom_minimum_size = Vector2(80, 80)
+	b.add_theme_font_size_override("font_size", 56)
+	b.custom_minimum_size = Vector2(124, 124)
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = Color(0.16, 0.15, 0.22, 0.9)
+	sb.set_corner_radius_all(16)
+	b.add_theme_stylebox_override("normal", sb)
+	var hb := sb.duplicate(); (hb as StyleBoxFlat).bg_color = Color(0.26, 0.24, 0.34, 0.95)
+	b.add_theme_stylebox_override("hover", hb)
+	b.add_theme_stylebox_override("pressed", hb)
 	b.pressed.connect(cb)
 	return b
+
+func _unhandled_input(e: InputEvent) -> void:
+	if e is InputEventKey and (e as InputEventKey).pressed and not (e as InputEventKey).echo:
+		match (e as InputEventKey).keycode:
+			KEY_ENTER, KEY_KP_ENTER, KEY_SPACE:
+				_on_begin()
+			KEY_LEFT, KEY_A:
+				_prev_class()
+			KEY_RIGHT, KEY_D:
+				_next_class()
 
 func _swatch_input(e: InputEvent, i: int) -> void:
 	if e is InputEventMouseButton and (e as InputEventMouseButton).pressed:

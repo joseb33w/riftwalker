@@ -77,7 +77,9 @@ func _show_title() -> void:
 		_show_start())
 	c.add_child(btn)
 	ui_layer.add_child(c)
-	var tw := create_tween().set_loops()
+	# bind the looping pulse to the label it animates so it dies with the title
+	# gate; a Game-bound infinite tween animating the freed label hangs the renderer
+	var tw := tap.create_tween().set_loops()
 	tw.tween_property(tap, "modulate:a", 0.3, 0.7)
 	tw.tween_property(tap, "modulate:a", 1.0, 0.7)
 
