@@ -5,7 +5,8 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")" && pwd)"
 A="https://preview.myapping.com/godot-assets"
 T="https://preview.myapping.com/godot-textures"
-mkdir -p "$ROOT/models" "$ROOT/skies" "$ROOT/textures"
+AUD="https://preview.myapping.com/riftwalker-audio"
+mkdir -p "$ROOT/models" "$ROOT/skies" "$ROOT/textures" "$ROOT/audio"
 
 dl() { # url dest
 	if [ -f "$2" ]; then return; fi
@@ -38,5 +39,12 @@ dl "$A/skies/ph_belfast_sunset_puresky.hdr" "$ROOT/skies/w1_golden.hdr"
 dl "$A/skies/sb_planet_2.png"               "$ROOT/skies/w2_planet.png"
 dl "$A/skies/sb_cloudy_2.png"               "$ROOT/skies/w3_cloudy.png"
 dl "$A/skies/acg_nightskyhdri003.exr"       "$ROOT/skies/w4_night.exr"
+
+echo "Audio (procedural music + sfx)..."
+for s in music_menu music_w0 music_w1 music_w2 music_w3 \
+         sfx_swing sfx_hit sfx_enemy_death sfx_hurt sfx_dodge \
+         sfx_portal_open sfx_portal_enter sfx_ui sfx_begin sfx_victory; do
+	dl "$AUD/$s.ogg" "$ROOT/audio/$s.ogg"
+done
 
 echo "Done. Open the project in Godot 4.6.3 (it will import on first launch)."

@@ -5,10 +5,11 @@
 *.tmp
 *.b64
 
-# Art assets (fetched via fetch_assets.sh, not committed to keep the repo lean)
+# Art + audio assets (fetched via fetch_assets.sh, not committed to keep the repo lean)
 /models/
 /skies/
 /textures/
+/audio/
 
 # Verify tooling (never committed)
 /verify/
