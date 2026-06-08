@@ -11,6 +11,14 @@ var run_start_ms := 0
 var best_ms := 0
 
 func _ready() -> void:
+	# Force the canvas to FILL the device at any aspect. The project sets
+	# stretch=canvas_items / aspect=expand, but on web that doesn't reliably
+	# apply on the first frame (and an orientation lock would letterbox), so we
+	# force it here — otherwise the game renders in a centred 16:9 box with
+	# black side-bars on a wide phone.
+	var w := get_window()
+	w.content_scale_mode = Window.CONTENT_SCALE_MODE_CANVAS_ITEMS
+	w.content_scale_aspect = Window.CONTENT_SCALE_ASPECT_EXPAND
 	randomize()
 	ui_layer = CanvasLayer.new()
 	ui_layer.layer = 20
