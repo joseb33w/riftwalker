@@ -24,6 +24,12 @@ Riftwalker is built on free community art. Thank you to these creators.
 
 - Seamless ground textures (grass, metal panel, stone floor, dirt) — **CC0**.
 
+## Audio
+
+- **Music + sound effects** — original, procedurally synthesised for Riftwalker (five looping
+  per-screen music loops + ten SFX). No third-party audio is used. Fetched via `fetch_assets.sh`
+  alongside the art to keep the repo lean.
+
 ## Engine
 
 - **Godot Engine** 4.6.3 — MIT licensed (godotengine.org).

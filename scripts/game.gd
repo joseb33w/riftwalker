@@ -81,6 +81,7 @@ func _show_title() -> void:
 	btn.flat = true
 	btn.set_anchors_preset(Control.PRESET_FULL_RECT)
 	btn.pressed.connect(func() -> void:
+		Audio.sfx("ui")
 		c.queue_free()
 		_show_start())
 	c.add_child(btn)
@@ -94,6 +95,7 @@ func _show_title() -> void:
 # ---------- start / customization ----------
 
 func _show_start() -> void:
+	Audio.play_music("menu")
 	# the rotating hero preview renders in the MAIN viewport (a SubViewport hangs WebGL2)
 	var stage := Node3D.new()
 	stage.name = "PreviewStage"
@@ -133,8 +135,10 @@ func _swap_world(i: int) -> void:
 	current_world.build(i, hero_class, hero_tint)
 	current_world.portal_reached.connect(_on_portal)
 	current_world.player_dead.connect(_on_player_dead)
+	Audio.play_music("w%d" % i)
 
 func _on_portal() -> void:
+	Audio.sfx("portal_enter")
 	var nxt := world_index + 1
 	if nxt >= WorldDefs.WORLD_COUNT:
 		_victory()
@@ -144,10 +148,13 @@ func _on_portal() -> void:
 func _on_player_dead() -> void:
 	var over := _overlay("YOU FELL", "The rift reclaims you...", "RETRY AREA", Color(0.7, 0.2, 0.2))
 	over.get_meta("action").pressed.connect(func() -> void:
+		Audio.sfx("ui")
 		over.queue_free()
 		_goto_world(world_index))
 
 func _victory() -> void:
+	Audio.sfx("victory")
+	Audio.play_music("menu", 1.2)
 	var elapsed := Time.get_ticks_msec() - run_start_ms
 	if best_ms == 0 or elapsed < best_ms:
 		best_ms = elapsed
@@ -155,6 +162,7 @@ func _victory() -> void:
 	var sub := "Clear time: %s     Best: %s" % [_fmt(elapsed), _fmt(best_ms)]
 	var over := _overlay("RIFTS CLOSED", sub, "PLAY AGAIN", Color(0.2, 0.5, 0.35))
 	over.get_meta("action").pressed.connect(func() -> void:
+		Audio.sfx("ui")
 		over.queue_free()
 		if current_world != null and is_instance_valid(current_world):
 			current_world.teardown()

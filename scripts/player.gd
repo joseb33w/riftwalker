@@ -174,6 +174,7 @@ func do_dodge() -> void:
 	if model: model.rotation.y = face_yaw
 	_dodge_t = 0.42
 	state = St.DODGE
+	Audio.sfx("dodge")
 	_play("dodge", "run")
 
 func do_attack() -> void:
@@ -182,6 +183,7 @@ func do_attack() -> void:
 	if _attack_cd > 0.0:
 		return
 	_attack_cd = 0.55
+	Audio.sfx("swing")
 	# aim-snap toward nearest enemy in reach so a stationary tap never whiffs
 	var tgt := _nearest_enemy(attack_range * 1.8)
 	if tgt != null:
@@ -220,6 +222,7 @@ func _do_hit() -> void:
 	var fxpos := global_position + face * 1.4 + Vector3(0, 1.0, 0)
 	FX.spark_burst(get_parent(), fxpos, Color(1.0, 0.9, 0.5) if hit_any else Color(0.8, 0.85, 1.0), 18 if hit_any else 8)
 	if hit_any:
+		Audio.sfx("hit")
 		FX.ring_impact(get_parent(), fxpos, Color(1.0, 0.85, 0.45))
 		if camera_rig: camera_rig.add_shake(0.35)
 	else:
@@ -242,6 +245,7 @@ func take_damage(amount: int, from_dir: Vector3) -> void:
 	hp = max(0, hp - amount)
 	health_changed.emit(hp, max_hp)
 	_hurt_cd = 0.45
+	Audio.sfx("hurt")
 	FX.hit_flash(model, Color(1, 0.4, 0.4), 2.2)
 	if camera_rig: camera_rig.add_shake(0.5)
 	velocity += from_dir.normalized() * 4.0

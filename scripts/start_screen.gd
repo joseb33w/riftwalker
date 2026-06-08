@@ -265,19 +265,23 @@ func _unhandled_input(e: InputEvent) -> void:
 func _swatch_input(e: InputEvent, i: int) -> void:
 	if e is InputEventMouseButton and (e as InputEventMouseButton).pressed:
 		tint_idx = i
+		Audio.sfx("ui")
 		_apply_tint_to_hero()
 		_update_labels()
 	elif e is InputEventScreenTouch and (e as InputEventScreenTouch).pressed:
 		tint_idx = i
+		Audio.sfx("ui")
 		_apply_tint_to_hero()
 		_update_labels()
 
 func _prev_class() -> void:
 	class_idx = (class_idx - 1 + WorldDefs.HERO_CLASSES.size()) % WorldDefs.HERO_CLASSES.size()
+	Audio.sfx("ui")
 	_rebuild_hero(); _update_labels()
 
 func _next_class() -> void:
 	class_idx = (class_idx + 1) % WorldDefs.HERO_CLASSES.size()
+	Audio.sfx("ui")
 	_rebuild_hero(); _update_labels()
 
 func _update_labels() -> void:
@@ -319,4 +323,5 @@ func _process(dt: float) -> void:
 		_holder.rotation.y += dt * 0.6
 
 func _on_begin() -> void:
+	Audio.sfx("begin")
 	begin.emit(WorldDefs.HERO_CLASSES[class_idx], _current_tint())

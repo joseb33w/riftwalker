@@ -190,6 +190,7 @@ func _die() -> void:
 	collision_layer = 0
 	collision_mask = 0
 	_play("death")
+	Audio.sfx("enemy_death")
 	FX.spark_burst(get_parent(), global_position + Vector3(0, 1.0, 0), Color(1.0, 0.7, 0.3), 22, 1.3)
 	died.emit(self)
 	var tw := create_tween()
