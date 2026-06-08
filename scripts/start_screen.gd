@@ -132,20 +132,20 @@ func _build_ui() -> void:
 	margin.set_anchors_preset(Control.PRESET_FULL_RECT)
 	margin.add_theme_constant_override("margin_left", 56)
 	margin.add_theme_constant_override("margin_right", 56)
-	margin.add_theme_constant_override("margin_top", 40)
-	margin.add_theme_constant_override("margin_bottom", 44)
+	margin.add_theme_constant_override("margin_top", 30)
+	margin.add_theme_constant_override("margin_bottom", 30)
 	margin.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(margin)
 
 	var col := VBoxContainer.new()
-	col.add_theme_constant_override("separation", 14)
+	col.add_theme_constant_override("separation", 10)
 	col.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	margin.add_child(col)
 
 	# --- top: title + subtitle ---
 	var title := Label.new()
 	title.text = "RIFTWALKER"
-	title.add_theme_font_size_override("font_size", 86)
+	title.add_theme_font_size_override("font_size", 64)
 	title.add_theme_color_override("font_color", Color(1.0, 0.92, 0.7))
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	title.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -153,7 +153,7 @@ func _build_ui() -> void:
 
 	var sub := Label.new()
 	sub.text = "Forge your hero, then walk the rifts"
-	sub.add_theme_font_size_override("font_size", 32)
+	sub.add_theme_font_size_override("font_size", 28)
 	sub.add_theme_color_override("font_color", Color(0.75, 0.78, 0.9))
 	sub.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	sub.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -162,20 +162,20 @@ func _build_ui() -> void:
 	# --- expanding gap (hero preview is visible through it) ---
 	var spacer := Control.new()
 	spacer.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	spacer.custom_minimum_size = Vector2(0, 40)
+	spacer.custom_minimum_size = Vector2(0, 20)
 	spacer.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	col.add_child(spacer)
 
 	# --- class selector ---
 	var crow := HBoxContainer.new()
 	crow.alignment = BoxContainer.ALIGNMENT_CENTER
-	crow.add_theme_constant_override("separation", 28)
+	crow.add_theme_constant_override("separation", 26)
 	col.add_child(crow)
 	crow.add_child(_arrow("<", _prev_class))
 	_class_label = Label.new()
-	_class_label.add_theme_font_size_override("font_size", 54)
+	_class_label.add_theme_font_size_override("font_size", 46)
 	_class_label.add_theme_color_override("font_color", Color.WHITE)
-	_class_label.custom_minimum_size = Vector2(340, 0)
+	_class_label.custom_minimum_size = Vector2(300, 0)
 	_class_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_class_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	crow.add_child(_class_label)
@@ -184,11 +184,11 @@ func _build_ui() -> void:
 	# --- tint swatches ---
 	var trow := HBoxContainer.new()
 	trow.alignment = BoxContainer.ALIGNMENT_CENTER
-	trow.add_theme_constant_override("separation", 20)
+	trow.add_theme_constant_override("separation", 16)
 	col.add_child(trow)
 	for i in range(WorldDefs.TINTS.size()):
 		var sw := Panel.new()
-		sw.custom_minimum_size = Vector2(84, 84)
+		sw.custom_minimum_size = Vector2(72, 72)
 		var sb := StyleBoxFlat.new()
 		sb.bg_color = WorldDefs.TINTS[i]["color"]
 		sb.set_corner_radius_all(14)
@@ -200,7 +200,7 @@ func _build_ui() -> void:
 		_swatches.append(sw)
 
 	_tint_label = Label.new()
-	_tint_label.add_theme_font_size_override("font_size", 30)
+	_tint_label.add_theme_font_size_override("font_size", 26)
 	_tint_label.add_theme_color_override("font_color", Color(0.8, 0.85, 0.95))
 	_tint_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_tint_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -209,8 +209,8 @@ func _build_ui() -> void:
 	# --- begin button ---
 	var begin_btn := Button.new()
 	begin_btn.text = "BEGIN JOURNEY"
-	begin_btn.add_theme_font_size_override("font_size", 44)
-	begin_btn.custom_minimum_size = Vector2(560, 112)
+	begin_btn.add_theme_font_size_override("font_size", 38)
+	begin_btn.custom_minimum_size = Vector2(480, 92)
 	begin_btn.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	var bsb := StyleBoxFlat.new()
 	bsb.bg_color = Color(0.85, 0.5, 0.2)
@@ -229,7 +229,7 @@ func _build_ui() -> void:
 
 	var hint := Label.new()
 	hint.text = "Joystick to move   -   drag to look   -   ATK / DASH buttons"
-	hint.add_theme_font_size_override("font_size", 24)
+	hint.add_theme_font_size_override("font_size", 22)
 	hint.add_theme_color_override("font_color", Color(0.7, 0.72, 0.8))
 	hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	hint.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -240,8 +240,8 @@ func _build_ui() -> void:
 func _arrow(txt: String, cb: Callable) -> Button:
 	var b := Button.new()
 	b.text = txt
-	b.add_theme_font_size_override("font_size", 52)
-	b.custom_minimum_size = Vector2(116, 116)
+	b.add_theme_font_size_override("font_size", 44)
+	b.custom_minimum_size = Vector2(92, 92)
 	var sb := StyleBoxFlat.new()
 	sb.bg_color = Color(0.16, 0.15, 0.22, 0.9)
 	sb.set_corner_radius_all(16)
