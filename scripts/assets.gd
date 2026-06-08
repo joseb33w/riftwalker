@@ -152,6 +152,28 @@ static func style_model(root: Node3D, opts: Dictionary) -> void:
 static func tint_meshes(root: Node3D, color: Color, amount: float = 1.0) -> void:
 	style_model(root, {"tint": color, "tint_amount": amount})
 
+# Robust hero recolor: a KayKit Adventurer shares ONE texture-atlas material across
+# every body part (white baseColorFactor), so a weak name-matched lerp barely shifts.
+# Set albedo_color = tint DIRECTLY (full strength, multiplied over the atlas) on every
+# armour/cloth mesh, skipping bare-skin meshes (head/face/hair) so the colour reads as
+# clearly tinted gear while the face stays natural. Mutates the existing override
+# material (preserving the toon ramp + outline next_pass set by style_model).
+static func recolor_body(root: Node3D, tint: Color) -> void:
+	if root == null:
+		return
+	for mi: MeshInstance3D in root.find_children("*", "MeshInstance3D", true, false):
+		var n := mi.name.to_lower()
+		if n.find("head") >= 0 or n.find("face") >= 0 or n.find("hair") >= 0 or n.find("eye") >= 0 or n.find("beard") >= 0:
+			continue
+		var count: int = max(1, mi.mesh.get_surface_count()) if mi.mesh != null else 1
+		for s in range(count):
+			var base: Material = mi.get_active_material(s)
+			var m := (base.duplicate() if base != null else StandardMaterial3D.new()) as StandardMaterial3D
+			if m == null:
+				continue
+			m.albedo_color = tint
+			mi.set_surface_override_material(s, m)
+
 # ---- colliders ----
 
 static func merged_aabb(n: Node3D) -> AABB:
