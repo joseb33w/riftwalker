@@ -18,20 +18,26 @@ var _tint_label: Label
 var _swatches: Array[Panel] = []
 
 func _ready() -> void:
-	# A Control parented to a CanvasLayer does NOT auto-fill the viewport, so its
-	# size stays (0,0) and bottom-anchored children land off-screen. Size it
-	# explicitly and keep it in sync on resize/rotate.
+	# A Control parented to a CanvasLayer does NOT auto-fill the viewport, so size
+	# it to the LIVE (expanded) visible rect and keep it in sync on resize/rotate.
+	# All UI lives inside Containers (never absolute offsets) so it can never
+	# overlap or fall off-screen at any aspect ratio.
 	set_anchors_preset(Control.PRESET_FULL_RECT)
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
-	size = get_viewport_rect().size
-	get_viewport().size_changed.connect(_on_viewport_resized)
+	_resize_self()
+	get_viewport().size_changed.connect(_resize_self)
 	_build_stage()
 	_build_vignette()
 	_build_ui()
 	_rebuild_hero()
+	# the web canvas size is NOT final on the first frame — re-fit after two frames
+	await get_tree().process_frame
+	await get_tree().process_frame
+	_resize_self()
 
-func _on_viewport_resized() -> void:
-	size = get_viewport_rect().size
+func _resize_self() -> void:
+	size = get_viewport().get_visible_rect().size
+	position = Vector2.ZERO
 
 # ---------- 3D preview (main viewport) ----------
 
@@ -91,12 +97,14 @@ func _build_stage() -> void:
 
 func _build_vignette() -> void:
 	var top := _vgrad(Color(0.02, 0.02, 0.05, 0.92), Color(0.02, 0.02, 0.05, 0.0))
-	top.set_anchors_preset(Control.PRESET_TOP_WIDE)
-	top.offset_bottom = 520
+	top.anchor_left = 0.0; top.anchor_right = 1.0
+	top.anchor_top = 0.0; top.anchor_bottom = 0.34
+	top.offset_left = 0; top.offset_right = 0; top.offset_top = 0; top.offset_bottom = 0
 	add_child(top)
 	var bot := _vgrad(Color(0.02, 0.02, 0.05, 0.0), Color(0.01, 0.01, 0.04, 0.98))
-	bot.set_anchors_preset(Control.PRESET_BOTTOM_WIDE)
-	bot.offset_top = -760
+	bot.anchor_left = 0.0; bot.anchor_right = 1.0
+	bot.anchor_top = 0.52; bot.anchor_bottom = 1.0
+	bot.offset_left = 0; bot.offset_right = 0; bot.offset_top = 0; bot.offset_bottom = 0
 	add_child(bot)
 
 func _vgrad(c_top: Color, c_bot: Color) -> TextureRect:
@@ -117,62 +125,70 @@ func _vgrad(c_top: Color, c_bot: Color) -> TextureRect:
 # ---------- UI ----------
 
 func _build_ui() -> void:
+	# Full-rect Margin -> VBox: title block pinned top, controls pinned bottom, an
+	# expanding spacer between (the rotating hero shows through). Containers mean
+	# nothing overlaps or clips at portrait OR landscape.
+	var margin := MarginContainer.new()
+	margin.set_anchors_preset(Control.PRESET_FULL_RECT)
+	margin.add_theme_constant_override("margin_left", 56)
+	margin.add_theme_constant_override("margin_right", 56)
+	margin.add_theme_constant_override("margin_top", 30)
+	margin.add_theme_constant_override("margin_bottom", 30)
+	margin.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(margin)
+
+	var col := VBoxContainer.new()
+	col.add_theme_constant_override("separation", 10)
+	col.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	margin.add_child(col)
+
+	# --- top: title + subtitle ---
 	var title := Label.new()
 	title.text = "RIFTWALKER"
-	title.add_theme_font_size_override("font_size", 96)
+	title.add_theme_font_size_override("font_size", 64)
 	title.add_theme_color_override("font_color", Color(1.0, 0.92, 0.7))
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	title.set_anchors_preset(Control.PRESET_TOP_WIDE)
-	title.position.y = 60
 	title.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	add_child(title)
+	col.add_child(title)
+
 	var sub := Label.new()
 	sub.text = "Forge your hero, then walk the rifts"
-	sub.add_theme_font_size_override("font_size", 34)
+	sub.add_theme_font_size_override("font_size", 28)
 	sub.add_theme_color_override("font_color", Color(0.75, 0.78, 0.9))
 	sub.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	sub.set_anchors_preset(Control.PRESET_TOP_WIDE)
-	sub.position.y = 178
 	sub.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	add_child(sub)
+	col.add_child(sub)
 
-	# bottom control stack — explicit bottom anchoring so it's always on-screen
-	var panel := VBoxContainer.new()
-	panel.anchor_left = 0.0
-	panel.anchor_right = 1.0
-	panel.anchor_top = 1.0
-	panel.anchor_bottom = 1.0
-	panel.offset_top = -700
-	panel.offset_bottom = -56
-	panel.offset_left = 0
-	panel.offset_right = 0
-	panel.alignment = BoxContainer.ALIGNMENT_CENTER
-	panel.add_theme_constant_override("separation", 26)
-	add_child(panel)
+	# --- expanding gap (hero preview is visible through it) ---
+	var spacer := Control.new()
+	spacer.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	spacer.custom_minimum_size = Vector2(0, 20)
+	spacer.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	col.add_child(spacer)
 
-	# class selector
+	# --- class selector ---
 	var crow := HBoxContainer.new()
 	crow.alignment = BoxContainer.ALIGNMENT_CENTER
-	crow.add_theme_constant_override("separation", 30)
-	panel.add_child(crow)
+	crow.add_theme_constant_override("separation", 26)
+	col.add_child(crow)
 	crow.add_child(_arrow("<", _prev_class))
 	_class_label = Label.new()
-	_class_label.add_theme_font_size_override("font_size", 58)
+	_class_label.add_theme_font_size_override("font_size", 46)
 	_class_label.add_theme_color_override("font_color", Color.WHITE)
-	_class_label.custom_minimum_size = Vector2(360, 0)
+	_class_label.custom_minimum_size = Vector2(300, 0)
 	_class_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_class_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	crow.add_child(_class_label)
 	crow.add_child(_arrow(">", _next_class))
 
-	# tint swatches
+	# --- tint swatches ---
 	var trow := HBoxContainer.new()
 	trow.alignment = BoxContainer.ALIGNMENT_CENTER
-	trow.add_theme_constant_override("separation", 22)
-	panel.add_child(trow)
+	trow.add_theme_constant_override("separation", 16)
+	col.add_child(trow)
 	for i in range(WorldDefs.TINTS.size()):
 		var sw := Panel.new()
-		sw.custom_minimum_size = Vector2(96, 96)
+		sw.custom_minimum_size = Vector2(72, 72)
 		var sb := StyleBoxFlat.new()
 		sb.bg_color = WorldDefs.TINTS[i]["color"]
 		sb.set_corner_radius_all(14)
@@ -184,48 +200,48 @@ func _build_ui() -> void:
 		_swatches.append(sw)
 
 	_tint_label = Label.new()
-	_tint_label.add_theme_font_size_override("font_size", 32)
+	_tint_label.add_theme_font_size_override("font_size", 26)
 	_tint_label.add_theme_color_override("font_color", Color(0.8, 0.85, 0.95))
 	_tint_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_tint_label.set_anchors_preset(Control.PRESET_TOP_WIDE)
 	_tint_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	panel.add_child(_tint_label)
+	col.add_child(_tint_label)
 
-	# begin button
+	# --- begin button ---
 	var begin_btn := Button.new()
 	begin_btn.text = "BEGIN JOURNEY"
-	begin_btn.add_theme_font_size_override("font_size", 48)
-	begin_btn.custom_minimum_size = Vector2(620, 124)
+	begin_btn.add_theme_font_size_override("font_size", 38)
+	begin_btn.custom_minimum_size = Vector2(480, 92)
+	begin_btn.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	var bsb := StyleBoxFlat.new()
 	bsb.bg_color = Color(0.85, 0.5, 0.2)
 	bsb.set_corner_radius_all(18)
+	bsb.content_margin_left = 32; bsb.content_margin_right = 32
 	begin_btn.add_theme_stylebox_override("normal", bsb)
 	var bhover := bsb.duplicate()
-	bhover.bg_color = Color(0.95, 0.6, 0.28)
+	(bhover as StyleBoxFlat).bg_color = Color(0.95, 0.6, 0.28)
 	begin_btn.add_theme_stylebox_override("hover", bhover)
 	begin_btn.add_theme_stylebox_override("pressed", bhover)
 	var bbox := HBoxContainer.new()
 	bbox.alignment = BoxContainer.ALIGNMENT_CENTER
 	bbox.add_child(begin_btn)
-	panel.add_child(bbox)
+	col.add_child(bbox)
 	begin_btn.pressed.connect(_on_begin)
 
 	var hint := Label.new()
 	hint.text = "Joystick to move   -   drag to look   -   ATK / DASH buttons"
-	hint.add_theme_font_size_override("font_size", 26)
+	hint.add_theme_font_size_override("font_size", 22)
 	hint.add_theme_color_override("font_color", Color(0.7, 0.72, 0.8))
 	hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	hint.set_anchors_preset(Control.PRESET_TOP_WIDE)
 	hint.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	panel.add_child(hint)
+	col.add_child(hint)
 
 	_update_labels()
 
 func _arrow(txt: String, cb: Callable) -> Button:
 	var b := Button.new()
 	b.text = txt
-	b.add_theme_font_size_override("font_size", 56)
-	b.custom_minimum_size = Vector2(124, 124)
+	b.add_theme_font_size_override("font_size", 44)
+	b.custom_minimum_size = Vector2(92, 92)
 	var sb := StyleBoxFlat.new()
 	sb.bg_color = Color(0.16, 0.15, 0.22, 0.9)
 	sb.set_corner_radius_all(16)
@@ -296,14 +312,7 @@ func _rebuild_hero() -> void:
 func _apply_tint_to_hero() -> void:
 	if _hero == null or not is_instance_valid(_hero):
 		return
-	var tint := _current_tint()
-	for mi: MeshInstance3D in _hero.find_children("*", "MeshInstance3D", true, false):
-		var n := mi.name.to_lower()
-		if n.find("body") >= 0 or n.find("cape") >= 0 or n.find("cloak") >= 0 or n.find("robe") >= 0 or n.find("arm") >= 0:
-			for s in range(max(1, mi.get_surface_override_material_count())):
-				var m := mi.get_surface_override_material(s)
-				if m is StandardMaterial3D:
-					(m as StandardMaterial3D).albedo_color = (m as StandardMaterial3D).albedo_color.lerp(tint, 0.55)
+	Assets.recolor_body(_hero, _current_tint())
 
 func _process(dt: float) -> void:
 	if _holder != null and is_instance_valid(_holder):

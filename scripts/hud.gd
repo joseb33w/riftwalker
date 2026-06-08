@@ -27,9 +27,24 @@ func _ready() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_read_safe()
-	get_tree().root.size_changed.connect(_layout)
+	# Lay everything out against the LIVE (expanded) viewport so the joystick,
+	# ATK/DASH buttons and the HP/objective HUD are always fully on-screen at any
+	# orientation. Re-fit on resize/rotate AND after the first web frames (the
+	# canvas size is not final on frame 0).
+	get_viewport().size_changed.connect(_on_resize)
 	_layout()
 	set_process(true)
+	await get_tree().process_frame
+	await get_tree().process_frame
+	_layout()
+
+func _on_resize() -> void:
+	_read_safe()
+	_layout()
+
+# Live expanded viewport size — never the stale 1280x720 base.
+func _vp() -> Vector2:
+	return get_viewport().get_visible_rect().size
 
 func bind(p: Player, cam: CameraRig) -> void:
 	player = p
@@ -55,11 +70,16 @@ func flash_hurt() -> void:
 	_hurt_flash = 1.0
 
 func _layout() -> void:
-	var s := size
-	var m: float = 28.0 + float(_safe["right"])
-	var bm: float = 36.0 + float(_safe["bottom"])
-	_btn_attack = Rect2(Vector2(s.x - m - 150, s.y - bm - 150), Vector2(150, 150))
-	_btn_dodge = Rect2(Vector2(s.x - m - 150 - 130, s.y - bm - 90), Vector2(110, 110))
+	var s := _vp()
+	size = s
+	position = Vector2.ZERO
+	var m: float = 36.0 + float(_safe["right"])
+	var bm: float = 44.0 + float(_safe["bottom"])
+	var atk := 150.0
+	var ddg := 112.0
+	_btn_attack = Rect2(Vector2(s.x - m - atk, s.y - bm - atk), Vector2(atk, atk))
+	# dodge sits up-left of attack, inside the screen
+	_btn_dodge = Rect2(Vector2(s.x - m - atk - ddg - 22.0, s.y - bm - ddg + 8.0), Vector2(ddg, ddg))
 
 func _read_safe() -> void:
 	if not OS.has_feature("web"):
@@ -74,7 +94,6 @@ func _read_safe() -> void:
 		var d: Variant = JSON.parse_string(raw)
 		if d is Dictionary:
 			_safe = d
-	_layout()
 
 func _process(dt: float) -> void:
 	if player != null and is_instance_valid(player):
@@ -108,7 +127,7 @@ func _on_press(idx: int, pos: Vector2) -> void:
 		player.do_attack(); return
 	if _btn_dodge.has_point(pos):
 		player.do_dodge(); return
-	if pos.x < size.x * 0.5 and _joy_id == -2:
+	if pos.x < _vp().x * 0.5 and _joy_id == -2:
 		_joy_id = idx
 		_joy_origin = pos
 		_joy_vec = Vector2.ZERO
@@ -130,7 +149,7 @@ func _update_joy(pos: Vector2) -> void:
 	_joy_vec = Vector2(d.x / JOY_R, -d.y / JOY_R)
 
 func _draw() -> void:
-	var s := size
+	var s := _vp()
 	# hurt vignette
 	if _hurt_flash > 0.0:
 		draw_rect(Rect2(Vector2.ZERO, s), Color(0.7, 0.05, 0.05, 0.32 * _hurt_flash))
@@ -142,7 +161,7 @@ func _draw() -> void:
 		draw_circle(knob, KNOB_R, Color(1, 1, 1, 0.28))
 		draw_circle(knob, KNOB_R, Color(1, 1, 1, 0.85))
 	else:
-		var hint := Vector2(_safe["left"] + 130, s.y - _safe["bottom"] - 130)
+		var hint := Vector2(float(_safe["left"]) + 140.0, s.y - float(_safe["bottom"]) - 140.0)
 		draw_arc(hint, JOY_R, 0, TAU, 40, Color(1, 1, 1, 0.16), 3.0, true)
 	# attack button
 	var ac := _btn_attack.get_center()
@@ -163,14 +182,15 @@ func _draw() -> void:
 	var col := Color(0.35, 0.85, 0.4).lerp(Color(0.9, 0.3, 0.25), 1.0 - _hp)
 	draw_rect(Rect2(hx, hy, hw * _hp, 26), col)
 	_text_left(Vector2(hx + 8, hy + 20), "HP", 18, Color(1, 1, 1, 0.9))
-	# objective + count
+	# objective + count (centred, below the top safe-area)
+	var oy: float = float(_safe["top"]) + 34.0
 	if _objective != "":
-		_text_center(Vector2(s.x * 0.5, _safe["top"] + 34), _objective, 26, Color(1, 0.95, 0.8, 0.95))
+		_text_center(Vector2(s.x * 0.5, oy), _objective, 26, Color(1, 0.95, 0.8, 0.95))
 	if _count != "":
-		_text_center(Vector2(s.x * 0.5, _safe["top"] + 66), _count, 22, Color(1, 1, 1, 0.8))
+		_text_center(Vector2(s.x * 0.5, oy + 32.0), _count, 22, Color(1, 1, 1, 0.8))
 	# compass arrow toward portal
 	if _compass_dir.length() > 0.1:
-		var cc := Vector2(s.x * 0.5, _safe["top"] + 112)
+		var cc := Vector2(s.x * 0.5, oy + 78.0)
 		var dir := _compass_dir.normalized()
 		var tip := cc + dir * 26
 		var a := dir.orthogonal()
@@ -178,7 +198,7 @@ func _draw() -> void:
 	# banner
 	if _banner_a > 0.01:
 		var fade: float = clampf(_banner_a * 1.4, 0.0, 1.0)
-		_text_center(Vector2(s.x * 0.5, size.y * 0.32), _banner, 64, Color(1, 0.96, 0.85, fade))
+		_text_center(Vector2(s.x * 0.5, s.y * 0.32), _banner, 64, Color(1, 0.96, 0.85, fade))
 
 func _font() -> Font:
 	return ThemeDB.fallback_font

@@ -39,9 +39,9 @@ func setup(class_id: String, tint: Color) -> void:
 	var path: String = Assets.HERO_GLB.get(class_id, Assets.HERO_GLB["Knight"])
 	model = Assets.instance(path)
 	add_child(model)
-	# cel protagonist: toon shading + ink outline + accent tint on body/cape
+	# cel protagonist: toon shading + ink outline + chosen tint on armour/cloth
 	Assets.style_model(model, {"toon": true, "outline": true, "outline_width": 0.022})
-	_apply_tint(tint)
+	Assets.recolor_body(model, tint)
 	anim = Assets.find_anim_player(model)
 	anim.playback_default_blend_time = 0.14
 	clip = {
@@ -83,15 +83,6 @@ func _attack_candidates(class_id: String) -> Array:
 			return ["Melee_1H_Attack_Slice_Diagonal", "Ranged_Magic_Shoot", "Melee_1H_Attack_Chop"]
 		_:
 			return ["Melee_1H_Attack_Chop", "Melee_1H_Attack_Slice_Diagonal", "Chop"]
-
-func _apply_tint(tint: Color) -> void:
-	for mi: MeshInstance3D in model.find_children("*", "MeshInstance3D", true, false):
-		var n := mi.name.to_lower()
-		if n.find("body") >= 0 or n.find("cape") >= 0 or n.find("cloak") >= 0 or n.find("robe") >= 0 or n.find("arm") >= 0:
-			for s in range(max(1, mi.get_surface_override_material_count())):
-				var m := mi.get_surface_override_material(s)
-				if m is StandardMaterial3D:
-					m.albedo_color = m.albedo_color.lerp(tint, 0.55)
 
 func reset_for_world() -> void:
 	hp = max_hp
