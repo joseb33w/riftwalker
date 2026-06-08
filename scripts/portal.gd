@@ -11,6 +11,7 @@ var _light: OmniLight3D
 var _parts: CPUParticles3D
 var _disc_mat: StandardMaterial3D
 var _t := 0.0
+var _fired := false
 
 func _ready() -> void:
 	var col := CollisionShape3D.new()
@@ -21,7 +22,10 @@ func _ready() -> void:
 	col.position.y = 1.6
 	add_child(col)
 	monitoring = true
-	collision_mask = 1
+	# The player CharacterBody3D lives on collision_layer 2 (see World._spawn_player).
+	# An Area3D only reports a body whose layer is in the Area's mask, so this MUST
+	# include bit 2 or walking into the rift silently does nothing.
+	collision_mask = 2
 
 	_ring = MeshInstance3D.new()
 	var torus := TorusMesh.new()
@@ -90,6 +94,7 @@ func set_color(c: Color) -> void:
 	_light.light_color = c
 
 func set_active(v: bool) -> void:
+	var was := active
 	active = v
 	_parts.emitting = v
 	_light.visible = v
@@ -101,6 +106,8 @@ func set_active(v: bool) -> void:
 			rm.albedo_color = color.darkened(0.5)
 	else:
 		set_color(color)
+		if not was:
+			Audio.sfx("portal_open")
 
 func _process(dt: float) -> void:
 	_t += dt
@@ -111,6 +118,21 @@ func _process(dt: float) -> void:
 		_disc_mat.albedo_color.a = p
 		_light.light_energy = 1.6 + 0.8 * sin(_t * 3.0)
 
+# Poll overlaps too (not just the body_entered edge): this catches the player
+# already standing on the rift at the moment it opens, where no fresh enter event
+# would ever fire.
+func _physics_process(_dt: float) -> void:
+	if not active or _fired:
+		return
+	for b in get_overlapping_bodies():
+		if b.is_in_group("player"):
+			_trigger()
+			return
+
 func _on_body(body: Node) -> void:
-	if active and body.is_in_group("player"):
-		entered.emit()
+	if active and not _fired and body.is_in_group("player"):
+		_trigger()
+
+func _trigger() -> void:
+	_fired = true
+	entered.emit()

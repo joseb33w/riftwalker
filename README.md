@@ -32,20 +32,23 @@ victory clear-time (your best time is saved locally).
 - **Mobile-first controls** — floating left joystick to move, drag the right side to look, on-screen
   ATK / DASH buttons, safe-area-aware HUD. Full keyboard/mouse fallback (WASD, J = attack, Space = dash,
   Shift = run, mouse-drag = look).
+- **Original soundtrack + SFX** — five looping music loops (a menu theme plus one per world, each
+  scored to its mood) crossfaded on every world swap, and reactive sound effects for swings, hits,
+  hurts, dashes, enemy deaths, rift open/enter, UI and victory. All procedurally synthesised, CC0.
 
 ## Run / build it yourself
 
 Requires **Godot 4.6.3** (stable).
 
 ```bash
-./fetch_assets.sh      # downloads the CC0/CC-BY art into models/, skies/, textures/
+./fetch_assets.sh      # downloads the CC0/CC-BY art + audio into models/, skies/, textures/, audio/
 # then open the project in Godot 4.6.3 and press Play, or export to Web:
 #   godot --headless --import
 #   godot --headless --export-release "Web" out/index.html
 ```
 
-The art is **not committed** to keep the repo lean; `fetch_assets.sh` pulls the exact set used. The
-deployed web build bundles everything, so the preview link is fully self-contained.
+The art and audio are **not committed** to keep the repo lean; `fetch_assets.sh` pulls the exact set
+used. The deployed web build bundles everything, so the preview link is fully self-contained.
 
 ## Project layout
 
@@ -62,10 +65,12 @@ scripts/
   enemy.gd             chase/attack AI; KayKit skeleton retarget OR self-rigged quaternius creatures
   camera_rig.gd        SpringArm3D follow camera with drag-look + shake
   hud.gd               touch joystick + look + buttons, health, objective, banner, portal compass
-  portal.gd            rift Area3D with swirling FX + activation gate
+  portal.gd            rift Area3D with swirling FX + activation gate (layer-matched trigger)
   assets.gd            model loading, shared KayKit anim library + skeleton graft, styling, colliders
   fx.gd                spark bursts, hit-flash, ring impact, floating damage
+  audio.gd             "Audio" autoload: crossfaded per-world music + round-robin SFX pool
 shaders/               outline, fresnel rim, ground, PSX ground, brightness-correct HDRI sky
+audio/                 5 music loops + 10 SFX (.ogg, fetched via fetch_assets.sh)
 ```
 
 ## Credits
